@@ -1,5 +1,5 @@
 from langchain_community.embeddings import OllamaEmbeddings
-from langchain_ollama import ChatOllama
+from langchain_community.chat_models import ChatOllama
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -11,9 +11,7 @@ import os
 llm_model = tenant_config.get("llm_model", "mistral:7b-instruct-q4_K_M")
 embed_model = tenant_config.get("embed_model", "nomic-embed-text")
 
-ollama_base_url = "http://ollama:11434"
-if not os.environ.get("JWT_SECRET"): 
-    ollama_base_url = "http://localhost:11434"
+ollama_base_url = os.environ.get("OLLAMA_BASE_URL", "http://ollama:11434")
 
 embeddings = OllamaEmbeddings(model=embed_model, base_url=ollama_base_url)
 

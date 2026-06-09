@@ -9,7 +9,36 @@ export default function Chat() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Auto-login to get JWT token for testing
+    const fetchToken = async () => {
+      try {
+        const formData = new URLSearchParams();
+        formData.append('username', 'user');
+        formData.append('password', 'user123');
+
+        const res = await fetch('http://localhost:8000/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: formData.toString()
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setToken(data.access_token);
+        } else {
+          console.error("Failed to authenticate");
+        }
+      } catch (err) {
+        console.error("Auth error", err);
+      }
+    };
+    fetchToken();
+  }, []);
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -24,17 +53,63 @@ export default function Chat() {
     setInput('');
     setIsLoading(true);
 
+    if (!token) {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Error: Not authenticated. Is the backend running?' }]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // Mocking response
-      setTimeout(() => {
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: 'This is a mock response from the RAG pipeline. ' + userMessage 
-        }]);
-        setIsLoading(false);
-      }, 1000);
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+      const res = await fetch('http://localhost:8000/chat/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ message: userMessage, stream: true })
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder('utf-8');
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              let text = line.replace('data: ', '');
+              
+              setMessages(prev => {
+                const newMsgs = [...prev];
+                newMsgs[newMsgs.length - 1].content += text;
+                return newMsgs;
+              });
+            }
+          }
+        }
+      }
+      
     } catch (error) {
       console.error(error);
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        if (newMsgs[newMsgs.length - 1].content === '') {
+           newMsgs[newMsgs.length - 1].content = "Error: Failed to connect to the backend or AI model.";
+        }
+        return newMsgs;
+      });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -62,7 +137,7 @@ export default function Chat() {
               </div>
               <div className={styles.messageText}>
                 <p>{msg.content}</p>
-                {msg.role === 'assistant' && idx > 0 && (
+                {msg.role === 'assistant' && idx > 0 && msg.content !== '' && !msg.content.startsWith('Error:') && !isLoading && (
                    <div className={styles.citationCard}>
                      Source: sample_policy.pdf
                    </div>
@@ -71,7 +146,7 @@ export default function Chat() {
             </div>
           </div>
         ))}
-        {isLoading && (
+        {isLoading && messages[messages.length - 1].role === 'user' && (
           <div className={`${styles.messageRow} ${styles.assistant}`}>
              <div className={styles.messageContent}>
                <div className={`${styles.avatar} ${styles.assistant}`}>AI</div>

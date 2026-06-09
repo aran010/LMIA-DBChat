@@ -1,0 +1,49 @@
+{
+  "company_name": "Acme Corporation",
+  "company_logo": "/assets/logo.png",
+  "primary_color": "#003366",
+  "db_connections": [
+    {
+      "id": "main_erp",
+      "name": "ERP Database",
+      "type": "postgresql",
+      "host": "192.168.1.10",
+      "port": 5432,
+      "database": "erp_prod",
+      "username": "readonly_user",
+      "password_env": "DB_ERP_PASSWORD",
+      "tables_to_index": [
+        "employees",
+        "products",
+        "orders"
+      ],
+      "sync_schedule": "0 2 * * *"
+    },
+    {
+      "id": "oracle_hr",
+      "name": "HR System",
+      "type": "oracle",
+      "host": "192.168.1.20",
+      "port": 1521,
+      "service_name": "HRPROD",
+      "username": "hr_readonly",
+      "password_env": "DB_ORACLE_PASSWORD",
+      "tables_to_index": [
+        "EMPLOYEES",
+        "DEPARTMENTS"
+      ],
+      "sync_schedule": "0 3 * * *"
+    }
+  ],
+  "doc_sources": [
+    {
+      "id": "policies",
+      "name": "Company Policies",
+      "path": "/opt/ragapp/uploads/policies/"
+    }
+  ],
+  "llm_model": "mistral:7b-instruct-q4_K_M",
+  "embed_model": "nomic-embed-text",
+  "max_retrieved_chunks": 5,
+  "response_temperature": 0.0
+}

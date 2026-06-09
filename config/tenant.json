@@ -7,7 +7,7 @@
       "id": "sample_hr",
       "name": "HR Sample DB",
       "type": "sqlite",
-      "database": "/opt/ragapp/config/sample_hr.db",
+      "database": "/opt/ragapp/config/ibm_hr.db",
       "tables_to_index": [
         "employees"
       ],

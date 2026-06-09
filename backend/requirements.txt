@@ -5,6 +5,8 @@ langchain-community==0.2.6
 langchain-ollama==0.1.0
 chromadb==0.5.3
 langchain-chroma==0.1.2
+pandas
+kaggle
 sqlalchemy==2.0.30
 cx_Oracle==8.3.0
 psycopg2-binary==2.9.9

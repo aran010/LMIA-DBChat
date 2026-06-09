@@ -2,26 +2,28 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from pydantic import BaseModel
 from config import settings
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 # In a real application, this would be a database table
 users_db = {
     "admin": {
         "username": "admin",
-        "hashed_password": CryptContext(schemes=["bcrypt"], deprecated="auto").hash("admin123"),
+        "hashed_password": hash_password("admin123"),
         "role": "admin"
     },
     "user": {
         "username": "user",
-        "hashed_password": CryptContext(schemes=["bcrypt"], deprecated="auto").hash("user123"),
+        "hashed_password": hash_password("user123"),
         "role": "user"
     }
 }
 
 router = APIRouter()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 ALGORITHM = "HS256"
@@ -32,7 +34,7 @@ class Token(BaseModel):
     token_type: str
 
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
